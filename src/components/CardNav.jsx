@@ -129,20 +129,16 @@ const CardNav = () => {
         </div>
 
         {/* Mobile header */}
-        <div className="md:hidden flex items-center justify-between w-full px-4 py-3">
-          <nav className="flex items-center gap-4 text-sm text-white/85" aria-label="Hauptnavigation">
-            {menuItems.map((item) => (
-              <a key={item.label} href={item.href} className="hover:text-amber-400 transition-colors">
-                {item.label}
-              </a>
-            ))}
-          </nav>
-          <a href="#hero" className="flex items-center justify-center flex-1">
+        <div className="md:hidden relative flex w-full items-center px-4 py-3">
+          <a
+            href="#hero"
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center"
+          >
             <img src={logo} alt="Goldhaus Langen" className="h-10 w-auto" loading="lazy" />
           </a>
           <button
             onClick={toggleMenu}
-            className="ml-4 flex h-10 w-10 items-center justify-center rounded-full border border-white/50 text-white/90 hover:text-amber-400 hover:border-amber-400"
+            className="ml-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/50 text-white/90 hover:text-amber-400 hover:border-amber-400"
             aria-label="Menü öffnen"
             aria-expanded={isOpen}
           >
