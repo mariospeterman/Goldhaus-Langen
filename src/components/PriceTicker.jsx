@@ -300,8 +300,8 @@ export const PriceTicker = memo(
                 throw new Error(`Invalid price for ${symbol}`);
               }
 
-              // GoldAPI.io does NOT provide percentage change - we must calculate it
-              // Calculate percentage change from last cached price
+              // GoldAPI.io does NOT provide percentage change - we calculate it from cached 24h price
+              // Only show percentage if we have real data (comparing with 24h old cached price)
               let changePercent = null;
               
               // Try to get change from API response first (in case they add it in future)
@@ -312,54 +312,44 @@ export const PriceTicker = memo(
                 }
               }
               
-              // If API doesn't provide change, calculate from cached price
-              // GoldAPI.io doesn't provide percentage change, so we calculate it ourselves
+              // Calculate real 24h change by comparing with cached price (from 24h ago)
+              // This gives us REAL percentage data without additional API calls
               if (changePercent === null) {
-                // First try in-memory cache (from previous fetch in same session)
-                const lastPrice = lastPricesRef.current?.find(p => p.symbol === symbol);
-                
-                // If no in-memory cache, try localStorage cache
-                let cachedPrice = null;
-                if (!lastPrice) {
-                  try {
-                    const cached = localStorage.getItem(CACHE_KEY);
-                    if (cached) {
-                      const parsed = JSON.parse(cached);
-                      if (parsed?.data && Array.isArray(parsed.data)) {
-                        cachedPrice = parsed.data.find(p => p.symbol === symbol);
+                try {
+                  const cached = localStorage.getItem(CACHE_KEY);
+                  if (cached) {
+                    const parsed = JSON.parse(cached);
+                    // Only use cache if it's from a previous day (24h+ old) for real comparison
+                    const cacheAge = Date.now() - (parsed?.timestamp || 0);
+                    const isOldCache = cacheAge >= CACHE_MAX_AGE_MS; // 24 hours or older
+                    
+                    if (parsed?.data && Array.isArray(parsed.data) && isOldCache) {
+                      const cachedPrice = parsed.data.find(p => p.symbol === symbol);
+                      
+                      if (cachedPrice && cachedPrice.price > 0) {
+                        // Calculate real 24h percentage change
+                        const priceDiff = Math.abs(currentPrice - cachedPrice.price);
+                        const minChange = cachedPrice.price * 0.0001; // 0.01% minimum change
+                        
+                        if (priceDiff > minChange) {
+                          const calculated = ((currentPrice - cachedPrice.price) / cachedPrice.price) * 100;
+                          if (!isNaN(calculated) && isFinite(calculated)) {
+                            changePercent = calculated;
+                            if (import.meta.env.DEV) {
+                              console.log(`${symbol}: Real 24h change: ${cachedPrice.price.toFixed(2)} → ${currentPrice.toFixed(2)} = ${calculated.toFixed(2)}%`);
+                            }
+                          }
+                        } else {
+                          // Prices are essentially the same, show "—"
+                          if (import.meta.env.DEV) {
+                            console.log(`${symbol}: No significant 24h change`);
+                          }
+                        }
                       }
                     }
-                  } catch (e) {
-                    // Ignore cache read errors
                   }
-                }
-                
-                const previousPrice = lastPrice || cachedPrice;
-                
-                if (previousPrice && previousPrice.price > 0) {
-                  // Only calculate if prices are meaningfully different (avoid showing 0.00%)
-                  const priceDiff = Math.abs(currentPrice - previousPrice.price);
-                  const minChange = previousPrice.price * 0.0001; // 0.01% minimum change
-                  
-                  if (priceDiff > minChange) {
-                    const calculated = ((currentPrice - previousPrice.price) / previousPrice.price) * 100;
-                    if (!isNaN(calculated) && isFinite(calculated)) {
-                      changePercent = calculated;
-                      if (import.meta.env.DEV) {
-                        console.log(`${symbol}: Price change: ${previousPrice.price.toFixed(2)} → ${currentPrice.toFixed(2)} = ${calculated.toFixed(2)}%`);
-                      }
-                    }
-                  } else {
-                    // Prices are essentially the same, show "—"
-                    if (import.meta.env.DEV) {
-                      console.log(`${symbol}: No significant change (diff: ${priceDiff.toFixed(4)}, min: ${minChange.toFixed(4)})`);
-                    }
-                  }
-                } else {
-                  // No previous price to compare with - first load
-                  if (import.meta.env.DEV) {
-                    console.log(`${symbol}: First load - no previous price for comparison`);
-                  }
+                } catch (e) {
+                  // Ignore cache read errors
                 }
               }
               
