@@ -1,0 +1,185 @@
+# Goldhaus Langen - LLM.txt
+
+## About
+
+Goldhaus Langen ist ein etablierter Fachbetrieb für den An- und Verkauf von Edelmetallen, Luxusuhren, Schmuck und wertvollen Sammlungsgegenständen in Langen (Hessen), Deutschland. Wir bieten faire Bewertungen, transparente Preise und sofortige Barauszahlung.
+
+## Business Information
+
+**Name:** Goldhaus Langen
+**Type:** Edelmetallhandel, Juwelier, Uhrenhändler
+**Location:** Bahnstraße 14, 63225 Langen (Hessen), Deutschland
+**Region:** Hessen, Deutschland
+**Phone:** 06103 7327237
+**WhatsApp:** +49 178 5980980
+**Email:** info@goldhaus-langen.de
+**Website:** https://goldhaus-langen.de
+
+## Services
+
+### 1. Goldankauf
+- Ankauf von Altgold, Zahngold und Schmuck
+- Tagesaktuelle Höchstpreise
+- Transparente und faire Bewertung
+- Sofortige Barauszahlung vor Ort
+- Direkte Bewertung ohne Wartezeit
+
+### 2. Luxusuhren
+- An- und Verkauf von Luxusuhren (Rolex, Omega, Breitling, etc.)
+- Echtheitszertifizierte Bewertung durch Experten
+- Marktgerechte Konditionen
+- Diskrete und professionelle Abwicklung
+- Zertifizierte Gutachter mit über 15 Jahren Erfahrung
+
+### 3. Münzen & Sammlungen
+- Bewertung und Ankauf von Münzen und Medaillen
+- Numismatische Expertise
+- Erkennung von Sammlerwert
+- Bewertung von Briefmarken und anderen Sammlungsgegenständen
+- Schnelle Auszahlung
+
+### 4. Haushaltsauflösungen
+- Komplettservice aus einer Hand
+- Faire Wertermittlung aller Wertgegenstände
+- Sichere Abwicklung wertvoller Stücke
+- Schnelle Umsetzung
+- Professionelle Beratung
+
+### 5. XENOX Schmuck
+- Exklusive XENOX Schmuckstücke
+- Modernes Design mit höchster Handwerkskunst
+- Zeitlose Eleganz
+- Feinste Materialien
+- Exklusive Kollektionen
+
+### 6. Kostenlose Bewertung
+- Unverbindliche und kostenlose Schätzung
+- Individuelle Beratung
+- Sofortige Einschätzung vor Ort
+- Transparente Bewertung
+- Keine versteckten Kosten
+
+## Key Features
+
+- **Sofortige Barauszahlung:** Keine Wartezeiten, sofortiges Geld
+- **Faire Tagespreise:** Transparente Preise basierend auf aktuellen Marktwerten
+- **Zertifizierte Experten:** Über 15 Jahre Erfahrung in der Bewertung
+- **Diskrete Abwicklung:** Vertrauliche Behandlung aller Angelegenheiten
+- **Kostenlose Beratung:** Unverbindliche Erstberatung ohne Kosten
+- **TÜV-zertifizierter Ankauf:** Professionelle Standards
+- **98% Weiterempfehlungen:** Hohe Kundenzufriedenheit
+
+## Target Keywords
+
+Goldankauf Langen, Silberankauf Langen, Edelmetallankauf Hessen, Luxusuhren kaufen Langen, Rolex verkaufen Langen, Gold verkaufen Langen, Altgold Ankauf Langen, Schmuckankauf Langen, Münzen Ankauf Langen, Haushaltsauflösung Langen, Juwelier Langen, Goldhändler Langen, Edelmetallhändler Hessen, Uhrenankauf Langen, Zahngold Ankauf Langen, XENOX Schmuck Langen, Edelmetallpreise, Goldpreis Langen, Silberpreis Langen, Platinpreis Langen
+
+## Location & Accessibility
+
+**Adresse:** Bahnstraße 14, 63225 Langen (Hessen)
+**Öffnungszeiten:** Nach Vereinbarung oder spontan vorbei
+**Parkplätze:** Verfügbar
+**Öffentliche Verkehrsmittel:** Erreichbar mit öffentlichen Verkehrsmitteln
+**Region:** Langen (Hessen), Rhein-Main-Gebiet, Hessen, Deutschland
+
+## Pricing & Payment
+
+- Tagesaktuelle Preise basierend auf internationalen Edelmetallmärkten
+- Transparente Preisgestaltung ohne versteckte Kosten
+- Sofortige Barauszahlung möglich
+- Keine Gebühren für Bewertungen
+- Faire Marktpreise für alle Wertgegenstände
+
+## Trust & Credibility
+
+- Trustpilot Bewertungen: 4.8 von 5 basierend auf 312 Bewertungen
+- 98% Weiterempfehlungen
+- TÜV-zertifizierter Ankauf
+- Über 15 Jahre Erfahrung
+- Zertifizierte Gutachter
+- Transparente Geschäftspraktiken
+
+## Real-Time Data
+
+Die Website zeigt aktuelle Edelmetallpreise in Echtzeit:
+- Gold (XAU) in Euro pro Unze
+- Silber (XAG) in Euro pro Unze
+- Platin (XPT) in Euro pro Unze
+- 24-Stunden Preisänderungen
+- Integration mit TradingView für detaillierte Charts
+
+## Technology Stack
+
+- React.js Frontend
+- Vite Build Tool
+- Tailwind CSS
+- Framer Motion für Animationen
+- Mapbox für interaktive Karten
+- Formspree für Kontaktformulare
+- GoldAPI.io für Echtzeit-Edelmetallpreise
+- TradingView für Finanzcharts
+
+## Content Structure
+
+1. **Hero Section:** Hauptüberschrift und Call-to-Action
+2. **Live Precious Metals Prices:** Echtzeitpreise für Gold, Silber, Platin
+3. **About Section:** Warum Goldhaus Langen wählen
+4. **Services:** Detaillierte Beschreibung aller 6 Hauptdienstleistungen
+5. **Social Proof:** Trustpilot Bewertungen und Kundenstimmen
+6. **Gallery:** XENOX Schmuck Kollektion
+7. **Contact:** Kontaktformular, Adresse, Telefon, WhatsApp, E-Mail, interaktive Karte
+
+## Legal Compliance
+
+- Vollständiges Impressum gemäß § 5 TMG
+- DSGVO-konforme Datenschutzerklärung
+- Allgemeine Geschäftsbedingungen (AGB)
+- Cookie-Hinweis
+- Transparente Geschäftsbedingungen
+
+## Social Media & Reviews
+
+- Trustpilot: 4.8/5 Sterne, 312 Bewertungen
+- Instagram: @goldhauslangen
+- WhatsApp Business: +49 178 5980980
+
+## Business Hours & Contact
+
+**Telefon:** 06103 7327237
+**WhatsApp:** +49 178 5980980
+**E-Mail:** info@goldhaus-langen.de
+**Adresse:** Bahnstraße 14, 63225 Langen (Hessen)
+**Termine:** Nach Vereinbarung oder spontan vorbei
+
+## Unique Selling Points
+
+1. Sofortige Barauszahlung - kein Warten auf Überweisungen
+2. Faire Tagespreise - transparente Preisgestaltung
+3. Expertenbewertung - über 15 Jahre Erfahrung
+4. Kostenlose Beratung - unverbindlich und transparent
+5. Diskrete Abwicklung - vertrauliche Behandlung
+6. TÜV-zertifiziert - professionelle Standards
+7. Hohe Kundenzufriedenheit - 98% Weiterempfehlungen
+
+## Target Audience
+
+- Personen, die Gold, Silber oder Edelmetalle verkaufen möchten
+- Sammler von Münzen, Briefmarken oder anderen Wertgegenständen
+- Besitzer von Luxusuhren (Rolex, Omega, Breitling, etc.)
+- Personen, die Haushaltsauflösungen benötigen
+- Interessenten für exklusiven XENOX Schmuck
+- Alle, die eine kostenlose Bewertung ihrer Wertgegenstände wünschen
+
+## Geographic Service Area
+
+Primär: Langen (Hessen) und Umgebung
+Sekundär: Rhein-Main-Gebiet, Hessen, Deutschland
+Auch: Überregionale Kunden willkommen
+
+## Last Updated
+
+2025-01-XX
+
+## Additional Notes
+
+Goldhaus Langen ist ein vertrauensvoller Partner für alle Angelegenheiten rund um Edelmetalle, Luxusuhren und wertvolle Gegenstände. Wir kombinieren jahrzehntelange Expertise mit modernster Technologie, um unseren Kunden den bestmöglichen Service zu bieten.
+
