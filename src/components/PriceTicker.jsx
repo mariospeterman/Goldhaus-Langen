@@ -205,15 +205,21 @@ export const PriceTicker = memo(
           ];
 
         // Try cache first (limit calls to once per 24h)
+        // Store old cache for percentage calculation even if we use it
+        let oldCachedData = null;
         try {
           const cached = localStorage.getItem(CACHE_KEY);
           if (cached) {
             const parsed = JSON.parse(cached);
             if (parsed?.timestamp && Date.now() - parsed.timestamp < CACHE_MAX_AGE_MS && Array.isArray(parsed.data) && parsed.data.length) {
+              // Cache is fresh - use it, but also store for potential percentage calculation
               lastPricesRef.current = parsed.data;
               setPrices(parsed.data);
               setLoading(false);
-              return;
+              return; // Use cached data, no API call needed
+            } else if (parsed?.data && Array.isArray(parsed.data)) {
+              // Cache is expired but exists - store it for percentage comparison with new prices
+              oldCachedData = parsed.data;
             }
           }
         } catch (_) {
@@ -312,44 +318,63 @@ export const PriceTicker = memo(
                 }
               }
               
-              // Calculate real 24h change by comparing with cached price (from 24h ago)
+              // Calculate real 24h change by comparing with old cached price (from 24h ago)
               // This gives us REAL percentage data without additional API calls
               if (changePercent === null) {
-                try {
-                  const cached = localStorage.getItem(CACHE_KEY);
-                  if (cached) {
-                    const parsed = JSON.parse(cached);
-                    // Only use cache if it's from a previous day (24h+ old) for real comparison
-                    const cacheAge = Date.now() - (parsed?.timestamp || 0);
-                    const isOldCache = cacheAge >= CACHE_MAX_AGE_MS; // 24 hours or older
-                    
-                    if (parsed?.data && Array.isArray(parsed.data) && isOldCache) {
-                      const cachedPrice = parsed.data.find(p => p.symbol === symbol);
+                // Use the old cached data we stored earlier (from expired cache)
+                // or try to get it from localStorage if not already stored
+                let previousPriceData = oldCachedData;
+                
+                if (!previousPriceData) {
+                  try {
+                    const cached = localStorage.getItem(CACHE_KEY);
+                    if (cached) {
+                      const parsed = JSON.parse(cached);
+                      // Only use cache if it's expired (24h+ old) for real comparison
+                      const cacheAge = Date.now() - (parsed?.timestamp || 0);
+                      const isOldCache = cacheAge >= CACHE_MAX_AGE_MS; // 24 hours or older
                       
-                      if (cachedPrice && cachedPrice.price > 0) {
-                        // Calculate real 24h percentage change
-                        const priceDiff = Math.abs(currentPrice - cachedPrice.price);
-                        const minChange = cachedPrice.price * 0.0001; // 0.01% minimum change
-                        
-                        if (priceDiff > minChange) {
-                          const calculated = ((currentPrice - cachedPrice.price) / cachedPrice.price) * 100;
-                          if (!isNaN(calculated) && isFinite(calculated)) {
-                            changePercent = calculated;
-                            if (import.meta.env.DEV) {
-                              console.log(`${symbol}: Real 24h change: ${cachedPrice.price.toFixed(2)} → ${currentPrice.toFixed(2)} = ${calculated.toFixed(2)}%`);
-                            }
-                          }
-                        } else {
-                          // Prices are essentially the same, show "—"
-                          if (import.meta.env.DEV) {
-                            console.log(`${symbol}: No significant 24h change`);
-                          }
-                        }
+                      if (parsed?.data && Array.isArray(parsed.data) && isOldCache) {
+                        previousPriceData = parsed.data;
                       }
                     }
+                  } catch (e) {
+                    // Ignore cache read errors
                   }
-                } catch (e) {
-                  // Ignore cache read errors
+                }
+                
+                if (previousPriceData && Array.isArray(previousPriceData)) {
+                  const cachedPrice = previousPriceData.find(p => p.symbol === symbol);
+                  
+                  if (cachedPrice && cachedPrice.price > 0) {
+                    // Calculate real 24h percentage change
+                    const priceDiff = Math.abs(currentPrice - cachedPrice.price);
+                    const minChange = cachedPrice.price * 0.0001; // 0.01% minimum change
+                    
+                    if (priceDiff > minChange) {
+                      const calculated = ((currentPrice - cachedPrice.price) / cachedPrice.price) * 100;
+                      if (!isNaN(calculated) && isFinite(calculated)) {
+                        changePercent = calculated;
+                        if (import.meta.env.DEV) {
+                          console.log(`${symbol}: Real 24h change: ${cachedPrice.price.toFixed(2)} → ${currentPrice.toFixed(2)} = ${calculated.toFixed(2)}%`);
+                        }
+                      }
+                    } else {
+                      // Prices are essentially the same, show "—"
+                      if (import.meta.env.DEV) {
+                        console.log(`${symbol}: No significant 24h change (diff: ${priceDiff.toFixed(4)})`);
+                      }
+                    }
+                  } else {
+                    if (import.meta.env.DEV) {
+                      console.log(`${symbol}: No cached price found for comparison`);
+                    }
+                  }
+                } else {
+                  // No old cache available - first load or cache was cleared
+                  if (import.meta.env.DEV) {
+                    console.log(`${symbol}: No previous price data available for 24h comparison`);
+                  }
                 }
               }
               
