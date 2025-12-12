@@ -1,5 +1,13 @@
 // Configuration and environment variable management
-const parseEnv = (key, fallback) => import.meta.env[key] || fallback;
+const parseEnv = (key, fallback) => {
+  const value = import.meta.env[key];
+  // Trim whitespace and return fallback if empty
+  if (value && typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : fallback;
+  }
+  return value || fallback;
+};
 
 export const CONFIG = {
   phone: parseEnv('VITE_PHONE', '06103 7327237'),
@@ -11,4 +19,12 @@ export const CONFIG = {
   instagramEndpoint: parseEnv('VITE_INSTAGRAM_ENDPOINT', '/insta.json'),
   goldApiKey: parseEnv('VITE_GOLDAPI_KEY', '')
 };
+
+// Debug logging (only in development)
+if (import.meta.env.DEV) {
+  console.log('CONFIG loaded:', {
+    goldApiKey: CONFIG.goldApiKey ? `${CONFIG.goldApiKey.substring(0, 10)}...` : 'NOT SET',
+    hasGoldApiKey: !!CONFIG.goldApiKey
+  });
+}
 

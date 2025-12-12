@@ -159,7 +159,16 @@ export const PriceTicker = memo(
     }, [speed, direction]);
 
     // If no API key is configured, render nothing
-    if (!CONFIG.goldApiKey) {
+    // Check for empty string, null, undefined, or whitespace-only
+    const hasValidApiKey = CONFIG.goldApiKey && 
+                           CONFIG.goldApiKey.trim().length > 0 && 
+                           CONFIG.goldApiKey !== 'YOUR_GOLDAPI_KEY' &&
+                           CONFIG.goldApiKey !== 'your_goldapi_key_here';
+    
+    if (!hasValidApiKey) {
+      if (import.meta.env.DEV) {
+        console.warn('PriceTicker: No valid GoldAPI key found. Set VITE_GOLDAPI_KEY in your environment variables.');
+      }
       return null;
     }
 
@@ -170,13 +179,23 @@ export const PriceTicker = memo(
           setLoading(true);
           setError(null);
 
-          const goldApiKey = CONFIG.goldApiKey;
+          const goldApiKey = CONFIG.goldApiKey?.trim();
 
-          if (!goldApiKey || goldApiKey.length === 0) {
+          if (!goldApiKey || goldApiKey.length === 0 || 
+              goldApiKey === 'YOUR_GOLDAPI_KEY' || 
+              goldApiKey === 'your_goldapi_key_here') {
             // If no API key configured, do not render anything
+            if (import.meta.env.DEV) {
+              console.warn('PriceTicker: No valid GoldAPI key found. Set VITE_GOLDAPI_KEY in your environment variables.');
+            }
             setPrices([]);
             setLoading(false);
             return;
+          }
+          
+          // Log API key status (first few chars only for security)
+          if (import.meta.env.DEV) {
+            console.log(`PriceTicker: Using GoldAPI key: ${goldApiKey.substring(0, 10)}...`);
           }
 
           const metals = [
@@ -241,14 +260,35 @@ export const PriceTicker = memo(
 
                 console.error(`GoldAPI error for ${symbol}:`, response.status, errorData);
                 
-                // If quota exceeded or forbidden, use cached data if available
+                // If quota exceeded or forbidden, try to use cached data
                 if (response.status === 403 || response.status === 429) {
+                  // First try lastPricesRef (in-memory cache)
                   const lastPrice = lastPricesRef.current?.find(p => p.symbol === symbol);
                   if (lastPrice) {
-                    console.warn(`Using cached price for ${symbol} due to API limit`);
+                    console.warn(`Using in-memory cached price for ${symbol} due to API limit (${response.status})`);
                     return lastPrice;
                   }
-                  throw new Error('GoldAPI: Kontingent erschöpft oder Zugriff verweigert.');
+                  
+                  // Then try localStorage cache
+                  try {
+                    const cached = localStorage.getItem(CACHE_KEY);
+                    if (cached) {
+                      const parsed = JSON.parse(cached);
+                      if (parsed?.data && Array.isArray(parsed.data)) {
+                        const cachedPrice = parsed.data.find(p => p.symbol === symbol);
+                        if (cachedPrice && cachedPrice.price > 0) {
+                          console.warn(`Using localStorage cached price for ${symbol} due to API limit (${response.status})`);
+                          return cachedPrice;
+                        }
+                      }
+                    }
+                  } catch (e) {
+                    // Ignore cache read errors
+                  }
+                  
+                  // If no cache available, return null (will be handled by caller)
+                  console.error(`No cached data available for ${symbol} and API returned ${response.status}`);
+                  return null;
                 }
                 throw new Error(`GoldAPI error ${response.status}`);
               }
@@ -264,17 +304,36 @@ export const PriceTicker = memo(
               let changePercent = null;
               
               // Try to get change from API response (check multiple possible fields)
-              if (data.change_percent !== null && data.change_percent !== undefined && !isNaN(data.change_percent)) {
-                changePercent = Number(data.change_percent);
-              } else if (data.change !== null && data.change !== undefined && !isNaN(data.change)) {
-                changePercent = Number(data.change);
-              } else {
-                // Calculate from last cached price if available
+              // GoldAPI.io returns change_percent as a number (e.g., 0.5 for 0.5%)
+              if (data.change_percent !== null && data.change_percent !== undefined) {
+                const parsed = Number(data.change_percent);
+                if (!isNaN(parsed)) {
+                  changePercent = parsed;
+                }
+              }
+              
+              // Also check for 'change' field (some APIs use this)
+              if (changePercent === null && data.change !== null && data.change !== undefined) {
+                const parsed = Number(data.change);
+                if (!isNaN(parsed)) {
+                  changePercent = parsed;
+                }
+              }
+              
+              // If still no change, try to calculate from last cached price
+              if (changePercent === null) {
                 const lastPrice = lastPricesRef.current?.find(p => p.symbol === symbol);
                 if (lastPrice && lastPrice.price > 0 && lastPrice.price !== currentPrice) {
-                  changePercent = ((currentPrice - lastPrice.price) / lastPrice.price) * 100;
+                  const calculated = ((currentPrice - lastPrice.price) / lastPrice.price) * 100;
+                  if (!isNaN(calculated) && isFinite(calculated)) {
+                    changePercent = calculated;
+                  }
                 }
-                // If no last price, leave as null (will show "—" in UI)
+              }
+              
+              // If change is exactly 0, set to null to show "—" instead of "+0.00%"
+              if (changePercent === 0) {
+                changePercent = null;
               }
 
               return {
@@ -309,7 +368,27 @@ export const PriceTicker = memo(
           const validPrices = results.filter(p => p && p.price > 0);
 
           if (validPrices.length === 0) {
-            throw new Error('Keine Preisdaten von GoldAPI verfügbar.');
+            // Try to use cached data from localStorage as last resort
+            try {
+              const cached = localStorage.getItem(CACHE_KEY);
+              if (cached) {
+                const parsed = JSON.parse(cached);
+                if (parsed?.data && Array.isArray(parsed.data) && parsed.data.length > 0) {
+                  const cachedPrices = parsed.data.filter(p => p && p.price > 0);
+                  if (cachedPrices.length > 0) {
+                    console.warn('Using cached prices from localStorage due to API errors');
+                    lastPricesRef.current = cachedPrices;
+                    setPrices(cachedPrices);
+                    setLoading(false);
+                    return;
+                  }
+                }
+              }
+            } catch (e) {
+              // Ignore cache errors
+            }
+            
+            throw new Error('Keine Preisdaten von GoldAPI verfügbar. Bitte überprüfen Sie den API-Schlüssel in den Vercel-Umgebungsvariablen.');
           }
 
           lastPricesRef.current = validPrices;
@@ -335,7 +414,16 @@ export const PriceTicker = memo(
 
           // If no cached real prices exist, show error (no mock data)
           console.error('No real price data available');
-          setError('Preise konnten nicht geladen werden. Bitte versuchen Sie es später erneut.');
+          
+          // Provide helpful error message based on the error
+          let errorMessage = 'Preise konnten nicht geladen werden. Bitte versuchen Sie es später erneut.';
+          if (err.message && err.message.includes('403')) {
+            errorMessage = 'API-Schlüssel ungültig oder Kontingent erschöpft. Bitte überprüfen Sie VITE_GOLDAPI_KEY in Vercel.';
+          } else if (err.message && err.message.includes('Kontingent')) {
+            errorMessage = 'API-Kontingent erschöpft. Bitte versuchen Sie es später erneut oder überprüfen Sie Ihren API-Plan.';
+          }
+          
+          setError(errorMessage);
           setPrices([]);
         } finally {
           setLoading(false);
