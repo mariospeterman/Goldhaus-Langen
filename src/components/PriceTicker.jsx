@@ -300,39 +300,71 @@ export const PriceTicker = memo(
                 throw new Error(`Invalid price for ${symbol}`);
               }
 
-              // Get change from API or calculate from last price
+              // GoldAPI.io does NOT provide percentage change - we must calculate it
+              // Calculate percentage change from last cached price
               let changePercent = null;
               
-              // Try to get change from API response (check multiple possible fields)
-              // GoldAPI.io returns change_percent as a number (e.g., 0.5 for 0.5%)
+              // Try to get change from API response first (in case they add it in future)
               if (data.change_percent !== null && data.change_percent !== undefined) {
                 const parsed = Number(data.change_percent);
-                if (!isNaN(parsed)) {
+                if (!isNaN(parsed) && parsed !== 0) {
                   changePercent = parsed;
                 }
               }
               
-              // Also check for 'change' field (some APIs use this)
-              if (changePercent === null && data.change !== null && data.change !== undefined) {
-                const parsed = Number(data.change);
-                if (!isNaN(parsed)) {
-                  changePercent = parsed;
-                }
-              }
-              
-              // If still no change, try to calculate from last cached price
+              // If API doesn't provide change, calculate from cached price
+              // GoldAPI.io doesn't provide percentage change, so we calculate it ourselves
               if (changePercent === null) {
+                // First try in-memory cache (from previous fetch in same session)
                 const lastPrice = lastPricesRef.current?.find(p => p.symbol === symbol);
-                if (lastPrice && lastPrice.price > 0 && lastPrice.price !== currentPrice) {
-                  const calculated = ((currentPrice - lastPrice.price) / lastPrice.price) * 100;
-                  if (!isNaN(calculated) && isFinite(calculated)) {
-                    changePercent = calculated;
+                
+                // If no in-memory cache, try localStorage cache
+                let cachedPrice = null;
+                if (!lastPrice) {
+                  try {
+                    const cached = localStorage.getItem(CACHE_KEY);
+                    if (cached) {
+                      const parsed = JSON.parse(cached);
+                      if (parsed?.data && Array.isArray(parsed.data)) {
+                        cachedPrice = parsed.data.find(p => p.symbol === symbol);
+                      }
+                    }
+                  } catch (e) {
+                    // Ignore cache read errors
+                  }
+                }
+                
+                const previousPrice = lastPrice || cachedPrice;
+                
+                if (previousPrice && previousPrice.price > 0) {
+                  // Only calculate if prices are meaningfully different (avoid showing 0.00%)
+                  const priceDiff = Math.abs(currentPrice - previousPrice.price);
+                  const minChange = previousPrice.price * 0.0001; // 0.01% minimum change
+                  
+                  if (priceDiff > minChange) {
+                    const calculated = ((currentPrice - previousPrice.price) / previousPrice.price) * 100;
+                    if (!isNaN(calculated) && isFinite(calculated)) {
+                      changePercent = calculated;
+                      if (import.meta.env.DEV) {
+                        console.log(`${symbol}: Price change: ${previousPrice.price.toFixed(2)} → ${currentPrice.toFixed(2)} = ${calculated.toFixed(2)}%`);
+                      }
+                    }
+                  } else {
+                    // Prices are essentially the same, show "—"
+                    if (import.meta.env.DEV) {
+                      console.log(`${symbol}: No significant change (diff: ${priceDiff.toFixed(4)}, min: ${minChange.toFixed(4)})`);
+                    }
+                  }
+                } else {
+                  // No previous price to compare with - first load
+                  if (import.meta.env.DEV) {
+                    console.log(`${symbol}: First load - no previous price for comparison`);
                   }
                 }
               }
               
-              // If change is exactly 0, set to null to show "—" instead of "+0.00%"
-              if (changePercent === 0) {
+              // If change is exactly 0 or very close to 0, set to null to show "—"
+              if (changePercent !== null && Math.abs(changePercent) < 0.01) {
                 changePercent = null;
               }
 
