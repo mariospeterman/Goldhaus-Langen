@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Phone, Mail, MapPin, Instagram, MessageCircle, Send, X } from 'lucide-react';
-import emailjs from '@emailjs/browser';
 
 import CardNav from './components/CardNav.jsx';
 import CircularText from './components/CircleText.jsx';
@@ -10,7 +9,8 @@ import ServiceCard from './components/ServiceCard.jsx';
 import MapComponent from './components/MapComponent.jsx';
 import GlassSurface from './components/GlassSurface.jsx';
 import DomeGallery from './components/DomGallery.jsx';
-import { LogoLoop } from './components/LogoLoop.jsx';
+import { PriceTicker } from './components/PriceTicker.jsx';
+import TradingViewChart from './components/TradingViewChart.jsx';
 import { CONFIG } from './config.js';
 
 /**
@@ -83,41 +83,6 @@ const SERVICES = [
     }
 ];
 
-const PARTNER_LOGOS = [
-  
-    {
-      "src": "https://www.xenox.at/cdn/shop/files/Bildschirmfoto_2022-10-07_um_16.07.07_320x.png?v=1665151641",
-      "alt": "XENOX"
-    },
-    {
-      "src": "https://cdn.brandfetch.io/idz4Sdtuy7/theme/light/logo.svg?c=1bxid64Mup7aczewSAYMX&t=1758355288092",
-      "alt": "Sparkasse"
-    },
-    {
-      "src": "https://www.commerzbank.de/ms/media/favicons/CB-2022-Ribbon_RGB.svg",
-      "alt": "Commerzbank"
-    },
-    {
-      "src": "https://cdn.brandfetch.io/id5PmMuE2j/theme/dark/id8uM_LXr8.svg?c=1bxid64Mup7aczewSAYMX&t=1675932689502",
-      "alt": "Deutsche Bank"
-    },
-    {
-      "src": "https://cdn.brandfetch.io/idQMesNCNC/theme/dark/logo.svg?c=1bxid64Mup7aczewSAYMX&t=1740983672964",
-      "alt": "Allianz Versicherung"
-    },
-    {
-      "src": "https://cdn.brandfetch.io/idOBRpuygW/theme/light/logo.svg?c=1bxid64Mup7aczewSAYMX&t=1759067846145",
-      "alt": "DB Schenker"
-    },
-    {
-      "src": "https://cdn.brandfetch.io/idJQH2q34G/w/57/h/57/theme/dark/logo.png?c=1bxid64Mup7aczewSAYMX&t=1753894420127",
-      "alt": "Langen"
-    },
-    {
-      "src": "https://cdn.brandfetch.io/idEv_pJ-0j/theme/light/logo.svg?c=1bxid64Mup7aczewSAYMX&t=1675933843218",
-      "alt": "Post"
-    }  
-];
 
 export default function App() {
 
@@ -132,6 +97,7 @@ export default function App() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [modalContent, setModalContent] = useState(null);
   const [modalTitle, setModalTitle] = useState('Rechtliches');
+  const [modalReactContent, setModalReactContent] = useState(null);
 
   const xenoxImages = useMemo(() => {
     const source = images.length ? images : FALLBACK_GALLERY;
@@ -219,18 +185,8 @@ export default function App() {
 
   // Header measurement removed - hero goes to very top
 
-  /* ==== EmailJS init (safe) ==== */
+  /* ==== Scroll to top when app mounts ==== */
   useEffect(() => {
-    if (CONFIG?.emailjsPublicKey) {
-      try {
-    emailjs.init(CONFIG.emailjsPublicKey);
-      } catch (err) {
-        // non-fatal
-        // eslint-disable-next-line no-console
-        console.warn('EmailJS init failed', err);
-      }
-    }
-    // Scroll to top when app mounts (nice UX)
     window.scrollTo(0, 0);
   }, []);
 
@@ -296,12 +252,66 @@ export default function App() {
     }
   }, []);
 
+
   const acceptCookies = () => {
     try {
       localStorage.setItem('goldhaus.cookiesAccepted', 'true');
     } catch (_) { /* ignore */ }
     setCookiesAccepted(true);
   };
+
+  /* ==== Trustpilot Widget Reinitialization ==== */
+  useEffect(() => {
+    // Reinitialize Trustpilot widgets after React renders
+    const reinitializeTrustpilot = () => {
+      if (window.Trustpilot) {
+        // Method 1: Try loadFromElement if available
+        if (window.Trustpilot.loadFromElement) {
+          const widgets = document.querySelectorAll('.trustpilot-widget');
+          widgets.forEach((widget) => {
+            try {
+              window.Trustpilot.loadFromElement(widget, true);
+            } catch (err) {
+              // Ignore errors
+            }
+          });
+        }
+        
+        // Method 2: Try loadTrustBoxes if available
+        if (window.Trustpilot.loadTrustBoxes) {
+          try {
+            window.Trustpilot.loadTrustBoxes();
+          } catch (err) {
+            // Ignore errors
+          }
+        }
+      }
+    };
+
+    // Initial load after a delay to ensure DOM is ready
+    const timer1 = setTimeout(reinitializeTrustpilot, 1000);
+    const timer2 = setTimeout(reinitializeTrustpilot, 2500);
+
+    // Also reinitialize when Trustpilot script loads
+    if (window.Trustpilot) {
+      reinitializeTrustpilot();
+    } else {
+      const checkTrustpilot = setInterval(() => {
+        if (window.Trustpilot) {
+          reinitializeTrustpilot();
+          clearInterval(checkTrustpilot);
+        }
+      }, 200);
+
+      // Cleanup after 15 seconds if Trustpilot doesn't load
+      setTimeout(() => clearInterval(checkTrustpilot), 15000);
+    }
+
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
+  }, []);
 
   /* ==== Modal escape key handler and focus management ==== */
   useEffect(() => {
@@ -337,26 +347,41 @@ export default function App() {
     }
   };
 
-  const closeModal = () => setModalContent(null);
+  const closeModal = () => {
+    setModalContent(null);
+    setModalReactContent(null);
+  };
 
-  /* ==== Form submit via EmailJS ==== */
+  /* ==== Form submit via Formspree ==== */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     setFormStatus({ type: '', message: '' });
 
     try {
-      const f = new FormData(e.target);
-      await emailjs.send(CONFIG.emailjsServiceId, CONFIG.emailjsTemplateId, {
-        user_name: f.get('user_name'),
-        user_email: f.get('user_email'),
-        message: f.get('message'),
+      const formData = new FormData(e.target);
+      const response = await fetch('https://formspree.io/f/xgvgrykv', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Accept': 'application/json'
+        }
       });
-      setFormStatus({ type: 'success', message: 'Vielen Dank! Ihre Nachricht wurde erfolgreich gesendet.' });
-      e.target.reset();
+
+      if (response.ok) {
+        setFormStatus({ type: 'success', message: 'Vielen Dank! Ihre Nachricht wurde erfolgreich gesendet.' });
+        e.target.reset();
+      } else {
+        const data = await response.json();
+        if (data.errors) {
+          setFormStatus({ type: 'error', message: data.errors.map(error => error.message).join(', ') });
+        } else {
+          setFormStatus({ type: 'error', message: 'Senden fehlgeschlagen. Bitte versuchen Sie es erneut oder kontaktieren Sie uns telefonisch.' });
+        }
+      }
     } catch (err) {
       // eslint-disable-next-line no-console
-      console.error('email send error', err);
+      console.error('Form submission error', err);
       setFormStatus({ type: 'error', message: 'Senden fehlgeschlagen. Bitte versuchen Sie es erneut oder kontaktieren Sie uns telefonisch.' });
     } finally {
       setIsSubmitting(false);
@@ -461,7 +486,7 @@ export default function App() {
               transition={{ delay: 0.15 }}
               className="text-lg md:text-2xl text-white mb-6"
             >
-            Sofortige Auszahlung – fair, transparent & sicher.
+            Sofortige Auszahlung - fair, transparent & sicher.
           </motion.p>
 
             <motion.div
@@ -489,27 +514,33 @@ export default function App() {
         </div>
       </section>
 
-        {/* ========== Partner Logos Loop ========== */}
-        <section className="py-12 px-6 bg-black">
-          <div className="max-w-6xl mx-auto">
-            <LogoLoop
-              logos={PARTNER_LOGOS}
-              logoHeight={36}
-              speed={120}
-              pauseOnHover={false}
-              fadeOut
-              fadeOutColor="rgba(0,0,0,0.95)"
-              className=""
-            />
-          </div>
-        </section>
+        {/* ========== Live Precious Metals Prices ========== */}
+        {CONFIG.goldApiKey && (
+          <section className="py-12 px-6 bg-black">
+            <div className="max-w-6xl mx-auto">
+              <PriceTicker
+                itemHeight={36}
+                speed={80}
+                pauseOnHover={false}
+                fadeOut
+                fadeOutColor="rgba(0,0,0,0.95)"
+                gap={48}
+                className=""
+                onOpenChart={(symbol, metalName) => {
+                  setModalTitle('Edelmetall Echtzeitpreise');
+                  setModalReactContent(<TradingViewChart symbol={symbol} metalName={metalName} />);
+                }}
+              />
+            </div>
+          </section>
+        )}
 
         {/* ========== About ========== */}
         <section id="about" className="py-20 text-center px-6 max-w-5xl mx-auto text-white">
           <h2 className="text-4xl md:text-5xl font-bold mb-6 text-amber-400">Warum Goldhaus Langen?</h2>
           <p className="text-xl mb-4">Schnell. Fair. Transparent.</p>
           <p className="text-lg text-white/85 leading-relaxed">
-          Ob Gold, Silber oder Luxusuhren – bei uns erhalten Sie eine ehrliche Bewertung und sofortige Auszahlung.
+          Ob Gold, Silber oder Luxusuhren - bei uns erhalten Sie eine ehrliche Bewertung und sofortige Auszahlung.
           Wir stehen für Vertrauen, Erfahrung und persönliche Beratung in Langen.
         </p>
       </section>
@@ -519,35 +550,59 @@ export default function App() {
           <div className="max-w-6xl mx-auto grid gap-6 md:grid-cols-[1.05fr_1fr]">
             <div className="bg-white/5 border border-white/10 rounded-3xl p-8 text-white backdrop-blur-xl relative overflow-hidden">
               <div className="absolute -top-16 -right-16 h-40 w-40 rounded-full bg-amber-500/20 blur-3xl" />
-              <div className="flex items-center gap-4 mb-6">
-                <img
-                  src="https://cdn.trustpilot.net/brand-assets/2.1.0/logo-white.svg"
-                  alt="Trustpilot"
-                  className="h-10 w-auto"
-                  loading="lazy"
-                />
-                <div>
-                  <div className="flex items-center gap-1 text-amber-300 text-lg">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <span key={i}>★</span>
+              
+              {/* Trustpilot Branding and Rating Header */}
+              <div className="flex items-start justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <svg className="w-6 h-6 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/>
+                  </svg>
+                  <span className="text-white font-semibold text-lg">Trustpilot</span>
+                </div>
+                <div className="text-right">
+                  <div className="flex items-center gap-1">
+                    {/* Trustpilot-style square star blocks - 4 full + 1 partial (4.8/5) */}
+                    {[...Array(4)].map((_, i) => (
+                      <div key={i} className="w-5 h-5 bg-emerald-400 rounded-sm flex items-center justify-center">
+                        <svg className="w-3.5 h-3.5 text-white fill-current" viewBox="0 0 20 20">
+                          <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/>
+                        </svg>
+                      </div>
                     ))}
+                    {/* Partially filled last star (80% filled) */}
+                    <div className="w-5 h-5 rounded-sm flex items-center justify-center relative overflow-hidden">
+                      <div className="absolute inset-0 bg-gray-300" />
+                      <div className="absolute inset-0 bg-emerald-400" style={{ width: '80%' }} />
+                      <svg className="w-3.5 h-3.5 text-white fill-current relative z-10" viewBox="0 0 20 20">
+                        <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/>
+                      </svg>
+                    </div>
                   </div>
-                  <p className="text-sm text-white/70">4.9 von 5 basierend auf 312 Bewertungen</p>
                 </div>
               </div>
-              <p className="text-lg font-semibold mb-3">
-                "Sehr freundlicher Service und faire Preise. Ich habe mich jederzeit gut beraten und sicher gefühlt."
-              </p>
-              <p className="text-white/70 text-sm">— Christina Müller, Kundin seit 2021</p>
-              <div className="mt-6 flex items-center gap-4 text-sm text-white/80">
-                <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                  98% Weiterempfehlungen
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-amber-300" />
-                  TÜV-zertifizierter Ankauf
-                </div>
+              
+              {/* Customer Testimonial */}
+              <div className="mb-6">
+                <p className="text-white text-xl font-bold leading-relaxed mb-4">
+                  "Sehr freundlicher Service und faire Preise. Ich habe mich jederzeit gut beraten und sicher gefühlt."
+                </p>
+                <p className="text-white/80 text-sm">— Mario P.</p>
+              </div>
+              
+              {/* Official Trustpilot Review Collector Widget */}
+              <div className="trustpilot-widget mb-4" 
+                data-locale="de-DE" 
+                data-template-id="56278e9abfbbba0bdcd568bc" 
+                data-businessunit-id="693b0b07f444175f889945a2" 
+                data-style-height="52px" 
+                data-style-width="100%" 
+                data-token="006e372a-86f3-4157-ab04-dd52f8091d8b">
+                <a href="https://de.trustpilot.com/review/goldhaus-langen.de" target="_blank" rel="noopener">Trustpilot</a>
+              </div>
+              
+              {/* Trust Indicators - Small, below button */}
+              <div className="flex items-center gap-4 text-xs text-white/70">
+                
               </div>
             </div>
 
@@ -560,7 +615,7 @@ export default function App() {
                 </li>
                 <li className="flex gap-3">
                   <span className="text-amber-500 mt-1">•</span>
-                  Zertifizierte Gutachter mit über 15 Jahren Erfahrung.
+                  Professionelle Wertermittlung mit über 15 Jahren Erfahrung.
                 </li>
                 <li className="flex gap-3">
                   <span className="text-amber-500 mt-1">•</span>
@@ -640,7 +695,8 @@ export default function App() {
               Vereinbaren Sie Ihren persönlichen Termin oder kommen Sie spontan vorbei – wir beraten Sie kostenlos.
             </p>
             <div className="space-y-4 text-lg">
-                <a href={`tel:${CONFIG.phone}`} className="flex items-center gap-3 hover:text-amber-400 transition"><Phone className="w-6 h-6" /> {CONFIG.phone}</a>
+                <a href={`tel:${CONFIG.phone.replace(/\s/g, '')}`} className="flex items-center gap-3 hover:text-amber-400 transition"><Phone className="w-6 h-6" /> {CONFIG.phone}</a>
+                <a href={`https://wa.me/${CONFIG.whatsapp.replace(/\D/g, '')}`} className="flex items-center gap-3 hover:text-amber-400 transition"><MessageCircle className="w-6 h-6" /> WhatsApp: {CONFIG.whatsapp}</a>
                 <a href={`mailto:${CONFIG.email}`} className="flex items-center gap-3 hover:text-amber-400 transition"><Mail className="w-6 h-6" /> {CONFIG.email}</a>
               <p className="flex items-center gap-3"><MapPin className="w-6 h-6" /> {CONFIG.address}</p>
             </div>
@@ -655,18 +711,18 @@ export default function App() {
             <h3 className="text-2xl font-bold mb-2">Nachricht senden</h3>
             <p className="text-gray-600 mb-6">Wir antworten werktags innerhalb von 24 Stunden.</p>
 
-              <form onSubmit={handleSubmit} aria-describedby="form-status">
+              <form onSubmit={handleSubmit} action="https://formspree.io/f/xgvgrykv" method="POST" aria-describedby="form-status">
               {formStatus.message && (
                   <div id="form-status" className={`mb-4 p-3 rounded ${formStatus.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
                   {formStatus.message}
                 </div>
               )}
 
-                <label className="sr-only" htmlFor="user_name">Ihr Name</label>
-                <input id="user_name" name="user_name" placeholder="Ihr Name" required className="w-full border-b mb-4 p-3 focus:border-amber-600 outline-none" />
+                <label className="sr-only" htmlFor="name">Ihr Name</label>
+                <input id="name" name="name" type="text" placeholder="Ihr Name" required className="w-full border-b mb-4 p-3 focus:border-amber-600 outline-none" />
 
-                <label className="sr-only" htmlFor="user_email">Ihre E-Mail</label>
-                <input id="user_email" name="user_email" type="email" placeholder="Ihre E-Mail" required className="w-full border-b mb-4 p-3 focus:border-amber-600 outline-none" />
+                <label className="sr-only" htmlFor="email">Ihre E-Mail</label>
+                <input id="email" name="email" type="email" placeholder="Ihre E-Mail" required className="w-full border-b mb-4 p-3 focus:border-amber-600 outline-none" />
 
                 <label className="sr-only" htmlFor="message">Ihre Nachricht</label>
                 <textarea id="message" name="message" rows="5" placeholder="Ihre Nachricht..." required className="w-full border-b mb-6 p-3 focus:border-amber-600 outline-none" />
@@ -688,7 +744,7 @@ export default function App() {
         {/* ========== Footer ========== */}
       <footer className="bg-gray-900 text-white py-16 px-6">
         <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
+          <div className="grid md:grid-cols-3 gap-8 mb-8">
             <div>
               <h4 className="font-semibold mb-3">Goldhaus Langen</h4>
               <p className="text-gray-400 text-sm leading-relaxed">
@@ -713,13 +769,6 @@ export default function App() {
               </ul>
             </div>
             
-            <div>
-              <h4 className="font-semibold mb-3">Social Media</h4>
-              <div className="flex gap-4">
-                  <a href={`https://wa.me/${CONFIG.phone.replace(/\D/g, '')}`} className="hover:text-amber-400 transition" aria-label="WhatsApp"><MessageCircle className="w-6 h-6" /></a>
-                  <a href="https://instagram.com/goldhauslangen" className="hover:text-amber-400 transition" aria-label="Instagram"><Instagram className="w-6 h-6" /></a>
-              </div>
-            </div>
           </div>
           
           <div className="border-t border-gray-800 pt-8 text-center">
@@ -765,7 +814,7 @@ export default function App() {
 
         {/* ========== Modal ========== */}
       <AnimatePresence>
-        {modalContent && (
+        {(modalContent || modalReactContent) && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -795,11 +844,17 @@ export default function App() {
                 </button>
               </div>
 
-              <div className="overflow-y-auto p-6 max-h-[calc(90vh-80px)] prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: modalContent }} />
+              <div className="overflow-y-auto p-6 max-h-[calc(90vh-80px)]">
+                {modalReactContent ? (
+                  modalReactContent
+                ) : (
+                  <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: modalContent }} />
+                )}
+              </div>
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>Ob Gold, Silber oder Luxusuhren
       </main>
     </div>
   );

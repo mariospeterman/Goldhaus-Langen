@@ -119,9 +119,9 @@ const CardNav = () => {
               <Mail className="h-5 w-5" />
             </a>
             <a
-              href={`https://wa.me/${CONFIG.phone.replace(/\D/g, '')}`}
+              href={`https://wa.me/${CONFIG.whatsapp.replace(/\D/g, '')}`}
               className="flex h-10 w-10 items-center justify-center rounded-full border border-white/60 text-white hover:border-amber-400 hover:text-amber-400 transition"
-              aria-label="Chat"
+              aria-label="WhatsApp"
             >
               <MessageCircle className="h-5 w-5" />
             </a>
@@ -208,11 +208,11 @@ const CardNav = () => {
                       <span>{CONFIG.phone}</span>
                     </a>
                     <a
-                      href={`https://wa.me/${CONFIG.phone.replace(/\D/g, '')}`}
+                      href={`https://wa.me/${CONFIG.whatsapp.replace(/\D/g, '')}`}
                       className="flex items-center gap-3 text-gray-700 hover:text-green-500 transition"
                     >
                       <MessageCircle className="w-5 h-5" />
-                      <span>WhatsApp</span>
+                      <span>WhatsApp: {CONFIG.whatsapp}</span>
                     </a>
                     <a
                       href={`mailto:${CONFIG.email}`}

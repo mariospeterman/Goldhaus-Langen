@@ -1,0 +1,558 @@
+import { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react';
+import { CONFIG } from '../config.js';
+
+const ANIMATION_CONFIG = {
+  SMOOTH_TAU: 0.25,
+  MIN_COPIES: 2,
+  COPY_HEADROOM: 2
+};
+
+const toCssLength = value => (typeof value === 'number' ? `${value}px` : (value ?? undefined));
+
+const cx = (...parts) => parts.filter(Boolean).join(' ');
+
+const useResizeObserver = (callback, elements, dependencies) => {
+  useEffect(() => {
+    if (!window.ResizeObserver) {
+      const handleResize = () => callback();
+      window.addEventListener('resize', handleResize);
+      callback();
+      return () => window.removeEventListener('resize', handleResize);
+    }
+
+    const observers = elements.map(ref => {
+      if (!ref.current) return null;
+      const observer = new ResizeObserver(callback);
+      observer.observe(ref.current);
+      return observer;
+    });
+
+    callback();
+
+    return () => {
+      observers.forEach(observer => observer?.disconnect());
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, dependencies);
+};
+
+const useAnimationLoop = (trackRef, targetVelocity, seqWidth, isHovered, pauseOnHover) => {
+  const rafRef = useRef(null);
+  const lastTimestampRef = useRef(null);
+  const offsetRef = useRef(0);
+  const velocityRef = useRef(0);
+
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+
+    const prefersReduced =
+      typeof window !== 'undefined' &&
+      window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (seqWidth > 0) {
+      offsetRef.current = ((offsetRef.current % seqWidth) + seqWidth) % seqWidth;
+      track.style.transform = `translate3d(${-offsetRef.current}px, 0, 0)`;
+    }
+
+    if (prefersReduced) {
+      track.style.transform = 'translate3d(0, 0, 0)';
+      return () => {
+        lastTimestampRef.current = null;
+      };
+    }
+
+    const animate = timestamp => {
+      if (lastTimestampRef.current === null) {
+        lastTimestampRef.current = timestamp;
+      }
+
+      const deltaTime = Math.max(0, timestamp - lastTimestampRef.current) / 1000;
+      lastTimestampRef.current = timestamp;
+
+      const target = pauseOnHover && isHovered ? 0 : targetVelocity;
+
+      const easingFactor = 1 - Math.exp(-deltaTime / ANIMATION_CONFIG.SMOOTH_TAU);
+      velocityRef.current += (target - velocityRef.current) * easingFactor;
+
+      if (seqWidth > 0) {
+        let nextOffset = offsetRef.current + velocityRef.current * deltaTime;
+        nextOffset = ((nextOffset % seqWidth) + seqWidth) % seqWidth;
+        offsetRef.current = nextOffset;
+
+        const translateX = -offsetRef.current;
+        track.style.transform = `translate3d(${translateX}px, 0, 0)`;
+      }
+
+      rafRef.current = requestAnimationFrame(animate);
+    };
+
+    rafRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      lastTimestampRef.current = null;
+    };
+  }, [targetVelocity, seqWidth, isHovered, pauseOnHover, trackRef]);
+};
+
+// Format price with currency symbol
+const formatPrice = (price, currency = 'EUR') => {
+  if (!price || isNaN(price)) return '—';
+  return new Intl.NumberFormat('de-DE', {
+    style: 'currency',
+    currency: currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(price);
+};
+
+// Format change percentage
+const formatChange = (change) => {
+  // Allow 0, but reject null, undefined, and NaN
+  if (change === null || change === undefined || (typeof change !== 'number') || isNaN(change)) {
+    return '—';
+  }
+  const sign = change >= 0 ? '+' : '';
+  return `${sign}${change.toFixed(2)}%`;
+};
+
+const CACHE_KEY = 'goldapi.prices.cache';
+const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24h
+
+export const PriceTicker = memo(
+  ({
+    speed = 80,
+    direction = 'left',
+    width = '100%',
+    itemHeight = 36,
+    gap = 48,
+    pauseOnHover = false,
+    fadeOut = true,
+    fadeOutColor = 'rgba(0,0,0,0.95)',
+    ariaLabel = 'Live Edelmetallpreise',
+    className,
+    style,
+    onOpenChart
+  }) => {
+    const containerRef = useRef(null);
+    const trackRef = useRef(null);
+    const seqRef = useRef(null);
+
+    const [seqWidth, setSeqWidth] = useState(0);
+    const [copyCount, setCopyCount] = useState(ANIMATION_CONFIG.MIN_COPIES);
+    const [isHovered, setIsHovered] = useState(false);
+    const [prices, setPrices] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const lastPricesRef = useRef(null); // Store only real API data
+
+    const targetVelocity = useMemo(() => {
+      const magnitude = Math.abs(speed);
+      const directionMultiplier = direction === 'left' ? 1 : -1;
+      const speedMultiplier = speed < 0 ? -1 : 1;
+      return magnitude * directionMultiplier * speedMultiplier;
+    }, [speed, direction]);
+
+    // If no API key is configured, render nothing
+    if (!CONFIG.goldApiKey) {
+      return null;
+    }
+
+    // Fetch prices from GoldAPI.io (browser)
+    useEffect(() => {
+      const fetchPrices = async () => {
+        try {
+          setLoading(true);
+          setError(null);
+
+          const goldApiKey = CONFIG.goldApiKey;
+
+          if (!goldApiKey || goldApiKey.length === 0) {
+            // If no API key configured, do not render anything
+            setPrices([]);
+            setLoading(false);
+            return;
+          }
+
+          const metals = [
+            { symbol: 'XAU', name: 'Gold', color: 'text-amber-400' },
+            { symbol: 'XAG', name: 'Silber', color: 'text-gray-300' },
+            { symbol: 'XPT', name: 'Platin', color: 'text-blue-300' }
+          ];
+
+        // Try cache first (limit calls to once per 24h)
+        try {
+          const cached = localStorage.getItem(CACHE_KEY);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (parsed?.timestamp && Date.now() - parsed.timestamp < CACHE_MAX_AGE_MS && Array.isArray(parsed.data) && parsed.data.length) {
+              lastPricesRef.current = parsed.data;
+              setPrices(parsed.data);
+              setLoading(false);
+              return;
+            }
+          }
+        } catch (_) {
+          // Ignore cache errors
+        }
+
+          // Fetch metals sequentially to respect 5 reqs/sec rate limit
+          // Add 250ms delay between requests (4 reqs/sec max, well under limit)
+          const REQUEST_DELAY_MS = 250;
+          
+          const fetchMetal = async ({ symbol, name, color }, retryCount = 0) => {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
+            const url = `https://www.goldapi.io/api/${symbol}/EUR`;
+
+            try {
+              const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                  'x-access-token': goldApiKey,
+                  'Content-Type': 'application/json'
+                },
+                signal: controller.signal
+              });
+
+              clearTimeout(timeoutId);
+
+              if (!response.ok) {
+                const errorText = await response.text();
+                let errorData;
+                try {
+                  errorData = JSON.parse(errorText);
+                } catch {
+                  errorData = { error: errorText };
+                }
+
+                // Handle 429 (rate limit) with retry
+                if (response.status === 429 && retryCount < 3) {
+                  const retryDelay = Math.pow(2, retryCount) * 1000; // Exponential backoff: 1s, 2s, 4s
+                  console.warn(`Rate limited for ${symbol}, retrying in ${retryDelay}ms (attempt ${retryCount + 1}/3)`);
+                  await new Promise(resolve => setTimeout(resolve, retryDelay));
+                  return fetchMetal({ symbol, name, color }, retryCount + 1);
+                }
+
+                console.error(`GoldAPI error for ${symbol}:`, response.status, errorData);
+                
+                // If quota exceeded or forbidden, use cached data if available
+                if (response.status === 403 || response.status === 429) {
+                  const lastPrice = lastPricesRef.current?.find(p => p.symbol === symbol);
+                  if (lastPrice) {
+                    console.warn(`Using cached price for ${symbol} due to API limit`);
+                    return lastPrice;
+                  }
+                  throw new Error('GoldAPI: Kontingent erschöpft oder Zugriff verweigert.');
+                }
+                throw new Error(`GoldAPI error ${response.status}`);
+              }
+
+              const data = await response.json();
+
+              let currentPrice = data.price || (data.price_gram_24k ? data.price_gram_24k * 31.1035 : 0);
+              if (!currentPrice || currentPrice === 0 || isNaN(currentPrice)) {
+                throw new Error(`Invalid price for ${symbol}`);
+              }
+
+              // Get change from API or calculate from last price
+              let changePercent = null;
+              
+              // Try to get change from API response (check multiple possible fields)
+              if (data.change_percent !== null && data.change_percent !== undefined && !isNaN(data.change_percent)) {
+                changePercent = Number(data.change_percent);
+              } else if (data.change !== null && data.change !== undefined && !isNaN(data.change)) {
+                changePercent = Number(data.change);
+              } else {
+                // Calculate from last cached price if available
+                const lastPrice = lastPricesRef.current?.find(p => p.symbol === symbol);
+                if (lastPrice && lastPrice.price > 0 && lastPrice.price !== currentPrice) {
+                  changePercent = ((currentPrice - lastPrice.price) / lastPrice.price) * 100;
+                }
+                // If no last price, leave as null (will show "—" in UI)
+              }
+
+              return {
+                name,
+                symbol,
+                price: currentPrice,
+                change: changePercent,
+                unit: 'oz',
+                color
+              };
+            } catch (err) {
+              console.error(`Error fetching ${symbol}:`, err);
+              const lastPrice = lastPricesRef.current?.find(p => p.symbol === symbol);
+              return lastPrice || null;
+            }
+          };
+
+          // Fetch metals sequentially with delays to respect rate limits
+          const results = [];
+          for (let i = 0; i < metals.length; i++) {
+            const metal = metals[i];
+            const result = await fetchMetal(metal);
+            if (result) {
+              results.push(result);
+            }
+            
+            // Add delay between requests (except for the last one)
+            if (i < metals.length - 1) {
+              await new Promise(resolve => setTimeout(resolve, REQUEST_DELAY_MS));
+            }
+          }
+          const validPrices = results.filter(p => p && p.price > 0);
+
+          if (validPrices.length === 0) {
+            throw new Error('Keine Preisdaten von GoldAPI verfügbar.');
+          }
+
+          lastPricesRef.current = validPrices;
+          setPrices(validPrices);
+
+          // Cache the successful response
+          try {
+            localStorage.setItem(CACHE_KEY, JSON.stringify({ timestamp: Date.now(), data: validPrices }));
+          } catch (_) {
+            // ignore caching failures
+          }
+        } catch (err) {
+          console.error('Error fetching metal prices:', err);
+          setError(err.message);
+          
+          // Fallback: Use last known REAL prices if available (from previous successful API calls)
+          if (lastPricesRef.current && lastPricesRef.current.length > 0) {
+            console.warn('Using last real cached prices due to API error');
+            setPrices(lastPricesRef.current);
+            setLoading(false);
+            return;
+          }
+
+          // If no cached real prices exist, show error (no mock data)
+          console.error('No real price data available');
+          setError('Preise konnten nicht geladen werden. Bitte versuchen Sie es später erneut.');
+          setPrices([]);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchPrices();
+      
+      // Update prices 1 time per day (every 24 hours) to stay within 100 calls/month
+      // 3 metals × 1 refresh/day × ~30 days = ~90 calls/month
+      const ONE_DAY = 24 * 60 * 60 * 1000;
+      const interval = setInterval(fetchPrices, ONE_DAY);
+      
+      return () => clearInterval(interval);
+    }, []);
+
+    const updateDimensions = useCallback(() => {
+      const containerWidth = containerRef.current?.clientWidth ?? 0;
+      const sequenceWidth = seqRef.current?.getBoundingClientRect?.()?.width ?? 0;
+
+      if (sequenceWidth > 0) {
+        setSeqWidth(Math.ceil(sequenceWidth));
+        const copiesNeeded = Math.ceil(containerWidth / sequenceWidth) + ANIMATION_CONFIG.COPY_HEADROOM;
+        setCopyCount(Math.max(ANIMATION_CONFIG.MIN_COPIES, copiesNeeded));
+      }
+    }, []);
+
+    useResizeObserver(updateDimensions, [containerRef, seqRef], [prices, gap, itemHeight]);
+
+    useEffect(() => {
+      if (prices.length > 0) {
+        // Small delay to ensure DOM is ready
+        setTimeout(updateDimensions, 100);
+      }
+    }, [prices, updateDimensions]);
+
+    useAnimationLoop(trackRef, targetVelocity, seqWidth, isHovered, pauseOnHover);
+
+    const cssVariables = useMemo(
+      () => ({
+        '--priceticker-gap': `${gap}px`,
+        '--priceticker-itemHeight': `${itemHeight}px`,
+        ...(fadeOutColor && { '--priceticker-fadeColor': fadeOutColor })
+      }),
+      [gap, itemHeight, fadeOutColor]
+    );
+
+    const rootClasses = useMemo(
+      () =>
+        cx(
+          'relative overflow-x-hidden group',
+          '[--priceticker-gap:48px]',
+          '[--priceticker-itemHeight:36px]',
+          '[--priceticker-fadeColorAuto:#ffffff]',
+          'dark:[--priceticker-fadeColorAuto:#0b0b0b]',
+          className
+        ),
+      [className]
+    );
+
+    const handleMouseEnter = useCallback(() => {
+      if (pauseOnHover) setIsHovered(true);
+    }, [pauseOnHover]);
+
+    const handleMouseLeave = useCallback(() => {
+      if (pauseOnHover) setIsHovered(false);
+    }, [pauseOnHover]);
+
+    const renderPriceItem = useCallback(
+      (item, key) => {
+        const isPositive = item.change >= 0;
+        const changeColor = isPositive ? 'text-emerald-400' : 'text-red-400';
+
+        return (
+          <li
+            className={cx(
+              'flex-none mr-[var(--priceticker-gap)] flex items-center gap-3',
+              'text-[length:var(--priceticker-itemHeight)] leading-[1]',
+              'whitespace-nowrap'
+            )}
+            key={key}
+            role="listitem"
+          >
+            <div className="flex items-center gap-2.5 text-white">
+              <span className={cx('font-semibold', item.color)}>{item.name}</span>
+              <span className="text-white/60 text-sm">({item.symbol})</span>
+              
+              {/* Daily Price Badge */}
+              <span className="px-1.5 py-0.5 bg-white/10 rounded text-[10px] text-white/70 whitespace-nowrap">
+                Tagespreis
+              </span>
+              
+              <span className="font-bold text-white">{formatPrice(item.price)}</span>
+              <span className="text-white/40">/</span>
+              <span className="text-white/60 text-sm">{item.unit}</span>
+              
+              {/* Percentage with proper formatting */}
+              <span className={cx('text-sm font-medium', changeColor)}>
+                {formatChange(item.change)}
+              </span>
+              
+            </div>
+          </li>
+        );
+      },
+      []
+    );
+
+    const priceLists = useMemo(
+      () =>
+        Array.from({ length: copyCount }, (_, copyIndex) => (
+          <ul
+            className="flex items-center"
+            key={`copy-${copyIndex}`}
+            role="list"
+            aria-hidden={copyIndex > 0}
+            ref={copyIndex === 0 ? seqRef : undefined}
+          >
+            {prices.map((item, itemIndex) => renderPriceItem(item, `${copyIndex}-${itemIndex}`))}
+          </ul>
+        )),
+      [copyCount, prices, renderPriceItem]
+    );
+
+    const containerStyle = useMemo(
+      () => ({
+        width: toCssLength(width) ?? '100%',
+        ...cssVariables,
+        ...style
+      }),
+      [width, cssVariables, style]
+    );
+
+    // Show loading state while fetching real data
+    if (loading && prices.length === 0) {
+      return (
+        <div className={rootClasses} style={containerStyle}>
+          <div className="flex items-center justify-center py-4 text-white/60">
+            Lade Echtzeit-Preise...
+          </div>
+        </div>
+      );
+    }
+
+    // Show error if no real data available (no mock data)
+    if (prices.length === 0) {
+      return (
+        <div className={rootClasses} style={containerStyle}>
+          <div className="flex items-center justify-center py-4 text-white/60">
+            {error || 'Preise werden geladen...'}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div
+        ref={containerRef}
+        className={rootClasses}
+        style={containerStyle}
+        role="region"
+        aria-label={ariaLabel}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
+        {fadeOut && (
+          <>
+            <div
+              aria-hidden
+              className={cx(
+                'pointer-events-none absolute inset-y-0 left-0 z-[1]',
+                'w-[clamp(24px,8%,120px)]',
+                'bg-[linear-gradient(to_right,var(--priceticker-fadeColor,var(--priceticker-fadeColorAuto))_0%,rgba(0,0,0,0)_100%)]'
+              )}
+            />
+            <div
+              aria-hidden
+              className={cx(
+                'pointer-events-none absolute inset-y-0 right-0 z-[1]',
+                'w-[clamp(24px,8%,120px)]',
+                'bg-[linear-gradient(to_left,var(--priceticker-fadeColor,var(--priceticker-fadeColorAuto))_0%,rgba(0,0,0,0)_100%)]'
+              )}
+            />
+          </>
+        )}
+
+        <div
+          className={cx('flex w-max will-change-transform select-none', 'motion-reduce:transform-none')}
+          ref={trackRef}
+        >
+          {priceLists}
+        </div>
+        
+        {/* Link to real-time market data - discrete button below price loop */}
+        <div className="flex justify-center mt-4">
+          <button
+            onClick={() => {
+              if (onOpenChart && prices.length > 0) {
+                // Open chart for the first metal (Gold) by default, or allow selection
+                const defaultMetal = prices[0];
+                onOpenChart(defaultMetal.symbol, defaultMetal.name);
+              }
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-white/60 hover:text-amber-400 text-xs transition-all cursor-pointer"
+            title="Echtzeitpreise anzeigen"
+            aria-label="Echtzeitpreise anzeigen"
+          >
+            <span className="text-sm">📈</span>
+            <span>Live Preise</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+);
+
+PriceTicker.displayName = 'PriceTicker';
+
+export default PriceTicker;
+
