@@ -517,19 +517,10 @@ export default function App() {
         {/* ========== Live Precious Metals Prices ========== */}
         <section className="py-16 px-6 bg-black">
           <div className="max-w-7xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold text-center mb-4 text-white">
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-8 text-white">
               Aktuelle Edelmetallpreise
             </h2>
-            <p className="text-center text-gray-400 mb-8">
-              Klicken Sie auf ein Edelmetall für Echtzeitpreise und Charts
-            </p>
-            <MetalPriceWidget
-              onOpenChart={(symbol, metalName) => {
-                setModalTitle(`${metalName} - Echtzeitpreise`);
-                setModalReactContent(<TradingViewChart symbol={symbol} metalName={metalName} />);
-                setIsModalOpen(true);
-              }}
-            />
+            <MetalPriceWidget />
           </div>
         </section>
 
