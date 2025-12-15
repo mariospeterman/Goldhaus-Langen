@@ -681,6 +681,10 @@ export default function App() {
       <section id="contact" className="py-20 bg-gray-100 px-6">
         <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-10">
           <div>
+            <h2 className="text-4xl font-bold mb-3">Lassen Sie uns sprechen.</h2>
+            <p className="text-gray-700 mb-6">
+              Vereinbaren Sie Ihren persönlichen Termin oder kommen Sie spontan vorbei – wir beraten Sie kostenlos.
+            </p>
             <MapComponent />
           </div>
 

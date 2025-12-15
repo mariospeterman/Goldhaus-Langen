@@ -100,7 +100,7 @@ const MapComponent = () => {
           href={googleMapsUrl}
             target="_blank"
             rel="noopener noreferrer"
-          className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-5 py-2.5 rounded-xl transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105"
+          className="flex items-center gap-2 bg-amber-400 hover:bg-amber-500 text-gray-900 px-5 py-2.5 rounded-xl transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105"
           >
           <Navigation className="w-4 h-4" />
           Route

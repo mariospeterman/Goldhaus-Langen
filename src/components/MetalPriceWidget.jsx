@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { BarChart3 } from 'lucide-react';
 import TradingViewChart from './TradingViewChart.jsx';
 
 const METALS = [
@@ -212,15 +213,16 @@ export const MetalPriceWidget = ({ onOpenChart }) => {
         </div>
       </div>
 
-      {/* Small Grey Buttons for Each Metal */}
+      {/* Chart Buttons for Each Metal */}
       <div className="flex justify-center gap-3 mt-6">
         {METALS.map((metal) => (
           <button
             key={metal.symbol}
             onClick={() => handleOpenChart(metal.symbol, metal.name)}
-            className="bg-gray-600/80 hover:bg-gray-500/80 text-white px-4 py-2 rounded-lg transition-all duration-300 text-sm font-medium"
+            className="flex items-center gap-2 bg-gray-700/60 hover:bg-gray-600/80 text-white px-5 py-2.5 rounded-lg transition-all duration-300 text-sm font-medium shadow-md hover:shadow-lg hover:scale-105"
           >
-            {metal.name}
+            <BarChart3 className="w-4 h-4" />
+            <span>{metal.name} Chart</span>
           </button>
         ))}
       </div>
