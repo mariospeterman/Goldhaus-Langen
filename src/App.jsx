@@ -520,7 +520,12 @@ export default function App() {
             <h2 className="text-3xl md:text-4xl font-bold text-center mb-8 text-white">
               Aktuelle Edelmetallpreise
             </h2>
-            <MetalPriceWidget />
+            <MetalPriceWidget
+              onOpenChart={(symbol, metalName) => {
+                setModalTitle(`${metalName} - Echtzeitpreise`);
+                setModalReactContent(<TradingViewChart symbol={symbol} metalName={metalName} />);
+              }}
+            />
           </div>
         </section>
 
@@ -689,10 +694,10 @@ export default function App() {
                 <a href={`mailto:${CONFIG.email}`} className="flex items-center gap-3 hover:text-amber-400 transition"><Mail className="w-6 h-6" /> {CONFIG.email}</a>
               <p className="flex items-center gap-3"><MapPin className="w-6 h-6" /> {CONFIG.address}</p>
             </div>
-
-              <div className="mt-6">
+          </div>
+          
+          <div>
             <MapComponent />
-              </div>
           </div>
 
           {/* Contact Form */}

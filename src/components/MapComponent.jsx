@@ -109,7 +109,7 @@ const MapComponent = () => {
           href={googleMapsViewUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-2 bg-black/80 hover:bg-black/90 backdrop-blur-sm text-white px-5 py-2.5 rounded-xl transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105 border border-white/20"
+          className="flex items-center gap-2 bg-amber-500/90 hover:bg-amber-600 backdrop-blur-sm text-white px-5 py-2.5 rounded-xl transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105"
         >
           <MapPin className="w-4 h-4" />
           Karte
