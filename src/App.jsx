@@ -9,7 +9,7 @@ import ServiceCard from './components/ServiceCard.jsx';
 import MapComponent from './components/MapComponent.jsx';
 import GlassSurface from './components/GlassSurface.jsx';
 import DomeGallery from './components/DomGallery.jsx';
-import { PriceTicker } from './components/PriceTicker.jsx';
+import MetalPriceWidget from './components/MetalPriceWidget.jsx';
 import TradingViewChart from './components/TradingViewChart.jsx';
 import { CONFIG } from './config.js';
 
@@ -515,25 +515,23 @@ export default function App() {
       </section>
 
         {/* ========== Live Precious Metals Prices ========== */}
-        {CONFIG.goldApiKey && (
-          <section className="py-12 px-6 bg-black">
-            <div className="max-w-6xl mx-auto">
-              <PriceTicker
-                itemHeight={36}
-                speed={80}
-                pauseOnHover={false}
-                fadeOut
-                fadeOutColor="rgba(0,0,0,0.95)"
-                gap={48}
-                className=""
-                onOpenChart={(symbol, metalName) => {
-                  setModalTitle('Edelmetall Echtzeitpreise');
-                  setModalReactContent(<TradingViewChart symbol={symbol} metalName={metalName} />);
-                }}
-              />
-            </div>
-          </section>
-        )}
+        <section className="py-16 px-6 bg-black">
+          <div className="max-w-7xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-4 text-white">
+              Aktuelle Edelmetallpreise
+            </h2>
+            <p className="text-center text-gray-400 mb-8">
+              Klicken Sie auf ein Edelmetall für Echtzeitpreise und Charts
+            </p>
+            <MetalPriceWidget
+              onOpenChart={(symbol, metalName) => {
+                setModalTitle(`${metalName} - Echtzeitpreise`);
+                setModalReactContent(<TradingViewChart symbol={symbol} metalName={metalName} />);
+                setIsModalOpen(true);
+              }}
+            />
+          </div>
+        </section>
 
         {/* ========== About ========== */}
         <section id="about" className="py-20 text-center px-6 max-w-5xl mx-auto text-white">

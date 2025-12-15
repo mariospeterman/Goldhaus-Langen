@@ -113,10 +113,10 @@ Die Website zeigt aktuelle Edelmetallpreise in Echtzeit:
 - Vite Build Tool
 - Tailwind CSS
 - Framer Motion für Animationen
-- Mapbox für interaktive Karten
+- OpenStreetMap für statische Kartenbilder
+- Google Maps für Routenplanung (externe Links)
 - Formspree für Kontaktformulare
-- GoldAPI.io für Echtzeit-Edelmetallpreise
-- TradingView für Finanzcharts
+- TradingView für Echtzeit-Edelmetallpreise und Finanzcharts
 
 ## Content Structure
 

@@ -87,3 +87,4 @@ After redeploying with the correct environment variable:
    - The app uses ~90 requests/month (3 metals × 1 call/day × 30 days)
    - If exceeded, wait for next month or upgrade plan
 
+

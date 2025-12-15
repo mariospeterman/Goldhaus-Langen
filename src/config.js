@@ -14,17 +14,8 @@ export const CONFIG = {
   email: parseEnv('VITE_EMAIL', 'info@goldhaus-langen.de'),
   address: parseEnv('VITE_ADDRESS', 'Bahnstraße 14, 63225 Langen (Hessen)'),
   whatsapp: parseEnv('VITE_WHATSAPP', '+491785980980'),
-  mapboxToken: parseEnv('VITE_MAPBOX_TOKEN', 'YOUR_MAPBOX_TOKEN'),
-  mapCenter: { lat: 49.989419, lng: 8.672798 }, // Bahnstraße 14, 63225 Langen (Hessen) - geocoded via Mapbox
-  instagramEndpoint: parseEnv('VITE_INSTAGRAM_ENDPOINT', '/insta.json'),
-  goldApiKey: parseEnv('VITE_GOLDAPI_KEY', '')
+  mapCenter: { lat: 49.989419, lng: 8.672798 }, // Bahnstraße 14, 63225 Langen (Hessen)
+  instagramEndpoint: parseEnv('VITE_INSTAGRAM_ENDPOINT', '/insta.json')
 };
 
-// Debug logging (only in development)
-if (import.meta.env.DEV) {
-  console.log('CONFIG loaded:', {
-    goldApiKey: CONFIG.goldApiKey ? `${CONFIG.goldApiKey.substring(0, 10)}...` : 'NOT SET',
-    hasGoldApiKey: !!CONFIG.goldApiKey
-  });
-}
 
