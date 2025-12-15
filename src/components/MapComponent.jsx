@@ -89,7 +89,7 @@ const MapComponent = () => {
     };
   }, []);
 
-  return (
+    return (
     <div className="mt-8 rounded-2xl overflow-hidden shadow-lg relative">
       {/* Map Container */}
       <div ref={mapRef} className="w-full h-[400px] bg-gray-200" />
@@ -98,20 +98,20 @@ const MapComponent = () => {
       <div className="absolute bottom-4 right-4 flex gap-3 z-[1000]">
         <a
           href={googleMapsUrl}
-          target="_blank"
-          rel="noopener noreferrer"
+            target="_blank"
+            rel="noopener noreferrer"
           className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-5 py-2.5 rounded-xl transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105"
-        >
+          >
           <Navigation className="w-4 h-4" />
           Route
-        </a>
-        <a
+          </a>
+          <a 
           href={googleMapsViewUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-2 bg-amber-500/90 hover:bg-amber-600 backdrop-blur-sm text-white px-5 py-2.5 rounded-xl transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105"
-        >
-          <MapPin className="w-4 h-4" />
+            target="_blank"
+            rel="noopener noreferrer"
+          className="flex items-center gap-2 bg-gray-600/80 hover:bg-gray-500/80 backdrop-blur-sm text-white px-5 py-2.5 rounded-xl transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105"
+          >
+            <MapPin className="w-4 h-4" />
           Karte
         </a>
       </div>

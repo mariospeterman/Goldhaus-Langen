@@ -517,9 +517,6 @@ export default function App() {
         {/* ========== Live Precious Metals Prices ========== */}
         <section className="py-16 px-6 bg-black">
           <div className="max-w-7xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold text-center mb-8 text-white">
-              Aktuelle Edelmetallpreise
-            </h2>
             <MetalPriceWidget
               onOpenChart={(symbol, metalName) => {
                 setModalTitle(`${metalName} - Echtzeitpreise`);
@@ -684,19 +681,6 @@ export default function App() {
       <section id="contact" className="py-20 bg-gray-100 px-6">
         <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-10">
           <div>
-            <h2 className="text-4xl font-bold mb-3">Lassen Sie uns sprechen.</h2>
-            <p className="text-gray-700 mb-6">
-              Vereinbaren Sie Ihren persönlichen Termin oder kommen Sie spontan vorbei – wir beraten Sie kostenlos.
-            </p>
-            <div className="space-y-4 text-lg">
-                <a href={`tel:${CONFIG.phone.replace(/\s/g, '')}`} className="flex items-center gap-3 hover:text-amber-400 transition"><Phone className="w-6 h-6" /> {CONFIG.phone}</a>
-                <a href={`https://wa.me/${CONFIG.whatsapp.replace(/\D/g, '')}`} className="flex items-center gap-3 hover:text-amber-400 transition"><MessageCircle className="w-6 h-6" /> WhatsApp: {CONFIG.whatsapp}</a>
-                <a href={`mailto:${CONFIG.email}`} className="flex items-center gap-3 hover:text-amber-400 transition"><Mail className="w-6 h-6" /> {CONFIG.email}</a>
-              <p className="flex items-center gap-3"><MapPin className="w-6 h-6" /> {CONFIG.address}</p>
-            </div>
-          </div>
-          
-          <div>
             <MapComponent />
           </div>
 
@@ -749,14 +733,24 @@ export default function App() {
             <div>
               <h4 className="font-semibold mb-3">Kontakt</h4>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li className="flex items-center gap-2"><Phone className="w-4 h-4" /> {CONFIG.phone}</li>
+                <li className="flex items-center gap-2">
+                  <Phone className="w-4 h-4" /> 
+                  <a href={`tel:${CONFIG.phone.replace(/\s/g, '')}`} className="hover:text-amber-400 transition">
+                    {CONFIG.phone}
+                  </a>
+                </li>
                 <li className="flex items-center gap-2">
                   <MessageCircle className="w-4 h-4" /> 
                   <a href={`https://wa.me/${CONFIG.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="hover:text-amber-400 transition">
                     {CONFIG.whatsapp}
                   </a>
                 </li>
-                <li className="flex items-center gap-2"><Mail className="w-4 h-4" /> {CONFIG.email}</li>
+                <li className="flex items-center gap-2">
+                  <Mail className="w-4 h-4" /> 
+                  <a href={`mailto:${CONFIG.email}`} className="hover:text-amber-400 transition">
+                    {CONFIG.email}
+                  </a>
+                </li>
               </ul>
             </div>
             
